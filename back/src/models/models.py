@@ -16,6 +16,8 @@ class Base(DeclarativeBase):
 
 class User(Base):
     name: Mapped[str] = mapped_column(nullable=False)
+    email: Mapped[str] = mapped_column(nullable=False)
+    disabled: Mapped[bool] = mapped_column(nullable=False)
     password_hash: Mapped[str] = mapped_column(nullable=False)
 
 
@@ -38,6 +40,3 @@ class Card(Base):
 
     created_at: Mapped[datetime] = mapped_column(nullable=False)
     updated_at: Mapped[datetime] = mapped_column(nullable=False)
-    last_repetition_at: Mapped[datetime] = mapped_column(nullable=False)
-    repetition_distance: Mapped[timedelta] = mapped_column(nullable=False)
-
