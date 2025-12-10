@@ -13,7 +13,7 @@ export default function Auth(){
       <div className="h-[100vh] content-center">
         <Separator />
         <div className="px-[10vw] m-auto">
-          <Card className="m-5 p-[10%]">
+          <Card className="m-5 p-[10%] bg-gradient-to-r from-card">
             <Routes>
               <Route path="/sign_in" element={<SignIn/>}/>
               <Route path="/sign_up" element={<SignUp/>}/>
