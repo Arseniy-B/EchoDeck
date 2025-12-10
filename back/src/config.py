@@ -56,11 +56,16 @@ class RedisSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
 
 
+class Otp(BaseSettings):
+    expire_minutes: int = 5
+
+
 class Config(BaseModel):
     db: PostgresSettings = PostgresSettings() # pyright: ignore
     jwt: JWT = JWT()
     email: EmailSettings = EmailSettings() # pyright: ignore
     redis: RedisSettings = RedisSettings() # pyright: ignore
+    otp: Otp = Otp()
 
 
 config = Config()
