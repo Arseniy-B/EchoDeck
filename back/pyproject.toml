@@ -19,6 +19,7 @@ alembic = "^1.17.2"
 httpx = "^0.28.1"
 pytest = "^9.0.1"
 redis = "^7.1.0"
+pydantic = {extras = ["email"], version = "^2.12.5"}
 
 
 [build-system]

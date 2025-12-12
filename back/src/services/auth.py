@@ -5,13 +5,10 @@ from fastapi import Request, Response
 from src.config import config
 from src.infrastructure.jwt import JWT
 from src.infrastructure.redis import Redis, redis_helper
-import json
+from src.infrastructure.password import PasswordHelper as ph
 
 AUTH_HEADER_KEY = "Authorization"
 
-
-def get_email_otp_key(email):
-    return f"otp:{email}"
 
 
 def get_email_ghost_user_key(email: str):
@@ -19,14 +16,22 @@ def get_email_ghost_user_key(email: str):
 
 
 class Auth:
-    def __init__(self, request: Request):
+    def __init__(self, request: Request, response: Response):
         self.web_token = JWT
-        self._is_authorized = False
-        if request.headers.get(AUTH_HEADER_KEY):
-            self._is_authorized = True
-
+        self.request = request
+        self.response = response
+        
     def is_authorized(self) -> bool:
+        if auth_token := self.request.headers.get(AUTH_HEADER_KEY):
+            if auth_token:
+                return True
+        return False
+
         return self._is_authorized
+
+    def login(self, user):
+        # self.response.headers[AUTH_HEADER_KEY]
+        ...
 
 
 def generate_otp_code() -> str:
@@ -37,19 +42,22 @@ class OtpStorage:
     def __init__(self, redis: Redis):
         self.redis = redis
 
-    @staticmethod
-    async def save_otp(email: str):
-        redis = await redis_helper.get_redis()
-        await redis.set(
-            get_email_otp_key(email),
-            generate_otp_code(),
+    def get_email_otp_key(self, email):
+        return f"otp:{email}"
+
+    async def save_otp(self, email: str, otp: str):
+        await self.redis.set(
+            self.get_email_otp_key(email),
+            ph.hash_password(otp),
             ex=config.otp.expire_minutes * 60,
         )
 
-    @staticmethod
-    async def verify_otp(email: str, otp: str) -> bool:
-        redis = await redis_helper.get_redis()
-        storage_otp = redis.get(get_email_otp_key(email))
-        if storage_otp and storage_otp == otp:
+    async def verify_otp(self, email: str, otp: str) -> bool:
+        storage_otp = await self.redis.get(self.get_email_otp_key(email))
+        if storage_otp and ph.verify_password(storage_otp, otp):
             return True
         return False
+
+
+async def sendOtp(email: str):
+    ...

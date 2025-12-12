@@ -1,25 +1,25 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class EmailUserLogin(BaseModel):
-    email: str
+    email: EmailStr
     otp: str
 
 class PasswordUserLogin(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 class GhostUser(BaseModel):
-    email: str
+    email: EmailStr
     password_hash: str
 
 class User(BaseModel):
     id: int
-    email: str
+    email: EmailStr
     disabled: bool = False
     password_hash: str
 
