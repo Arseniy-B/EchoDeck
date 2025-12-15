@@ -13,6 +13,12 @@ class UserRepo:
         ans = await self.session.execute(stmt)
         user_model: User = ans.scalar_one()
         return UserSchema.model_validate(user_model.__dict__)
+    
+    async def get_user_by_id(self, id: int) -> None | UserSchema: 
+        stmt = select(User).where(User.id == id)
+        ans = await self.session.execute(stmt)
+        user_model: User = ans.scalar_one()
+        return UserSchema.model_validate(user_model.__dict__)
 
     async def add_new_user(self, user: GhostUser):
         self.session.add(User(**user.__dict__))

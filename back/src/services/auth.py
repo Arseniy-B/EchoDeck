@@ -33,6 +33,18 @@ class Auth:
         # self.response.headers[AUTH_HEADER_KEY]
         ...
 
+    def get_refresh(self):
+        ...
+
+    def get_token_user_id(self, token: str) -> int:
+        ...
+
+    def verify_refresh(self, refresh: str) -> bool:
+        ...
+    
+    def refresh(self):
+        ...
+
 
 def generate_otp_code() -> str:
     return str(randint(100000, 999999))
@@ -59,5 +71,5 @@ class OtpStorage:
         return False
 
 
-async def sendOtp(email: str):
+async def send_otp(email: str):
     ...

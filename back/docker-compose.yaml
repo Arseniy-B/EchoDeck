@@ -9,10 +9,3 @@ services:
       - "5432:5432"
   redis:
     image: redis:alpine
-  # back:
-  #   build: .
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   ports:
-  #     - "8000:8000"
