@@ -5,6 +5,6 @@ from httpx import AsyncClient, ASGITransport
 from src.main import app
 
 @pytest.mark.asyncio
-async def test_func():
+async def test_send_data():
     async with AsyncClient(transport=ASGITransport(app=app)) as ac:
         await ac.get("")

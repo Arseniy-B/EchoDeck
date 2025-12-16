@@ -3,16 +3,13 @@ from random import randint
 from fastapi import Request, Response
 
 from src.config import config
-from src.infrastructure.jwt import JWT
-from src.infrastructure.redis import Redis, redis_helper
-from src.infrastructure.password import PasswordHelper as ph
+from src.services.jwt import JWT
+from src.services.redis import Redis, redis_helper
+from src.services.password import PasswordHelper as ph
 
 AUTH_HEADER_KEY = "Authorization"
 
 
-
-def get_email_ghost_user_key(email: str):
-    return f"ghost_user:{email}"
 
 
 class Auth:
@@ -70,6 +67,14 @@ class OtpStorage:
             return True
         return False
 
+class LoginOtpStorage(OtpStorage):
+    def get_email_otp_key(self, email):
+        return f"login_otp:{email}"
 
-async def send_otp(email: str):
-    ...
+class RegisterOtpStrogare(OtpStorage):
+    def get_email_otp_key(self, email):
+        return f"register_otp:{email}"
+
+def get_email_ghost_user_key(email: str):
+    return f"ghost_user:{email}"
+

@@ -1,5 +1,5 @@
 from functools import wraps
-from src.infrastructure.redis import redis_helper, Redis
+from src.services.redis import redis_helper, Redis
 from datetime import datetime, timedelta
 from fastapi.exceptions import HTTPException
 from fastapi import status

@@ -31,19 +31,6 @@ class JWT(BaseModel):
     refresh_token_expire_minutes: int = 60 * 24 * 30
 
 
-class EmailSettings(BaseSettings):
-    EMAIL_ADDRESS: str
-    EMAIL_PASSWORD: str
-    SMTP_SERVER: str
-
-    def get_otp_content(self, otp) -> str:
-        return f"Your login code: {otp}"
-
-    def get_welcome_content(self) -> str:
-        return "welcome"
-
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
-
 
 class RedisSettings(BaseSettings):
     REDIS_HOST: str
@@ -60,10 +47,23 @@ class Otp(BaseSettings):
     expire_minutes: int = 5
 
 
+class RebbitMQ(BaseSettings):
+    REBBITMQ_HOST: str
+    REBBITMQ_PORT: str
+    REBBITMQ_USER: str
+    REBBITMQ_PASS: str
+    REBBITMQ_EMAIL_QUEUE: str
+
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
+
+    @property
+    def get_connection_path(self) -> str:
+        return "amqp://user:pass@host:port/"
+
+
 class Config(BaseModel):
     db: PostgresSettings = PostgresSettings() # pyright: ignore
     jwt: JWT = JWT()
-    email: EmailSettings = EmailSettings() # pyright: ignore
     redis: RedisSettings = RedisSettings() # pyright: ignore
     otp: Otp = Otp()
 

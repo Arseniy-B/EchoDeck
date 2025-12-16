@@ -2,7 +2,7 @@ from fastapi import APIRouter, status
 from fastapi.exceptions import HTTPException
 from pydantic import EmailStr
 
-from src.infrastructure.password import PasswordHelper as ps
+from src.services.password import PasswordHelper as ps
 from src.schemas.user import (
     GhostUser,
     User,
@@ -10,8 +10,15 @@ from src.schemas.user import (
     EmailUserLogin,
     PasswordUserLogin,
 )
-from src.endpoints.depends import UserRepoDep, OtpStorageDep, RedisDep, AuthDep
-from src.services.auth import get_email_ghost_user_key, send_otp, generate_otp_code
+from src.endpoints.depends import (
+    UserRepoDep,
+    RedisDep,
+    AuthDep,
+    LoginOtpStorageDep,
+    RegisterOtpStorageDep,
+)
+from src.services.auth import get_email_ghost_user_key, generate_otp_code
+from src.config import config
 import json
 import logging
 
@@ -22,7 +29,9 @@ router = APIRouter(prefix="/auth")
 
 @router.post("/sign_up/send_data")
 async def get_user_create_data(
-    otp_storage: OtpStorageDep, redis: RedisDep, user_create: UserCreate
+    otp_storage: RegisterOtpStorageDep,
+    redis: RedisDep,
+    user_create: UserCreate,
 ):
     if not ps.check_password_strength(user_create.password):
         raise HTTPException(
@@ -38,13 +47,16 @@ async def get_user_create_data(
         "ghost_user's data has been saved in redis", extra={"email": user_create.email}
     )
 
-    await send_otp(user_create.email)
-    logger.info("a OTP has been sent to email", extra={"email": user_create.email})
+    otp = generate_otp_code()
+    await email_sender.send_message(
+        user_create.email, config.email.TEMPLATES["login_otp"].format(otp)
+    )
+    logger.info("a OTP has been sent to rebbitMQ", extra={"email": user_create.email})
 
 
 @router.post("/sign_up/confirm_email")
 async def finish_sign_up(
-    otp_storage: OtpStorageDep,
+    otp_storage: RegisterOtpStorageDep,
     redis: RedisDep,
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
@@ -63,18 +75,25 @@ async def finish_sign_up(
 
 
 @router.post("/sign_in/send_otp")
-async def send_otp_to_email(email: EmailStr, otp_storage: OtpStorageDep): 
+async def send_otp_to_email(
+    email: EmailStr, otp_storage: LoginOtpStorageDep, user_repo: UserRepoDep
+):
+    user = await user_repo.get_user_by_email(email)
+    if not user:
+        logger.info(
+            "attempt to log in to a non-existent account", extra={"email": user.email}
+        )
+        return
     otp = generate_otp_code()
     await otp_storage.save_otp(email, otp)
-    await send_otp(email)
-
+    await send_otp(email, otp)
 
 
 @router.post("/sign_in/email")
 async def login_by_email(
     auth_repo: AuthDep,
     user_repo: UserRepoDep,
-    otp_storage: OtpStorageDep,
+    otp_storage: LoginOtpStorageDep,
     user_login: EmailUserLogin,
 ):
     if not otp_storage.verify_otp(otp=user_login.otp, email=user_login.email):
@@ -113,6 +132,6 @@ async def refresh_token(auth_repo: AuthDep, user_repo: UserRepoDep):
     if not user:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid or expired refresh token"
-        ) 
+        )
     auth_repo.refresh()
     logger.info("refresh token", extra={"email": user.email})

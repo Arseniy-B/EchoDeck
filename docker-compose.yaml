@@ -12,6 +12,5 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-
 volumes:
   rabbitmq_data:
