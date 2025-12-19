@@ -1,12 +1,16 @@
 from pathlib import Path
+import os
 
-templates_files: list[Path] = [
-    Path(__file__).parent / "login_otp.txt",
-    Path(__file__).parent / "register_otp.txt",
-    Path(__file__).parent / "wellcome.txt",
-]
 
-TEMPLATES: dict[str, str] = {}
+def read_templates(template_dir: Path):
 
-for file in templates_files:
-    TEMPLATES[file.stem] = file.read_text(encoding="utf-8")
+    templates_files: list[Path] = [
+        template_dir / i for i in os.listdir(template_dir) if i.lower().endswith(".txt")
+    ]
+
+    TEMPLATES: dict[str, str] = {}
+
+    for file in templates_files:
+        TEMPLATES[file.stem] = file.read_text(encoding="utf-8")
+
+    return TEMPLATES 

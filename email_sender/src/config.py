@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
-from src.templates.read import TEMPLATES
+from src.templates.read import read_templates
 from pathlib import Path
 
 
@@ -11,27 +11,28 @@ class Email(BaseSettings):
     EMAIL_PASSWORD: str
     SMTP_SERVER: str
 
-    TEMPLATES: dict[str, str] = TEMPLATES
+    TEMPLATES_DIR: Path = BASE_DIR / "src" / "templates"
+    TEMPLATES: dict[str, str] = read_templates(TEMPLATES_DIR)
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
 
 
-class RebbitMQ(BaseSettings):
-    REBBITMQ_HOST: str
-    REBBITMQ_PORT: str
-    REBBITMQ_USER: str
-    REBBITMQ_PASS: str
-    REBBITMQ_EMAIL_QUEUE: str
-
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
+class RabbitMQ(BaseSettings):
+    RABBIT_HOST: str
+    RABBIT_PORT: str
+    RABBIT_USER: str
+    RABBIT_PASS: str
+    RABBIT_EMAIL_QUEUE: str
 
     @property
     def get_connection_path(self) -> str:
-        return "amqp://user:pass@host:port/"
+        return f"amqp://{self.RABBIT_USER}:{self.RABBIT_PASS}@{self.RABBIT_HOST}:{self.RABBIT_PORT}/"
+
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
 
 
 class Config(BaseModel):
     email: Email = Email() # pyright: ignore
-    rebbit: RebbitMQ = RebbitMQ() # pyright: ignore
+    rabbit: RabbitMQ = RabbitMQ() # pyright: ignore
 
 config = Config() 

@@ -1,12 +1,13 @@
-from faststream.rabbit import RabbitRouter
+from faststream import FastStream
+from faststream.rabbit import RabbitBroker, RabbitQueue
 from src.email_sender import email_sender
 from src.config import config
-from src.templates.read import TEMPLATES
 from pydantic import BaseModel, EmailStr, ValidationError
-from asyncio import create_task
 
 
-router = RabbitRouter(config.rebbit.get_connection_path)
+broker = RabbitBroker(config.rabbit.get_connection_path)
+app = FastStream(broker)
+
 
 
 class Event(BaseModel):
@@ -22,6 +23,7 @@ class ConfirmPayload(BaseModel):
 TypesOfConfirmEmail = ["login_confirm_email", "register_confirm_email"]
 
 
+@broker.subscriber(queue=RabbitQueue(config.rabbit.RABBIT_EMAIL_QUEUE, durable=True))
 async def confirm_email_task(msg: dict):
     try:
         event = Event.model_validate(msg)
@@ -36,11 +38,7 @@ async def confirm_email_task(msg: dict):
     except ValidationError:
         return
 
-    t = TEMPLATES[event.event_type]
+    t = config.email.TEMPLATES[event.event_type]
     text = t.format(**payload.model_dump())
     await email_sender.send_message(event.to, text)
 
-
-@router.subscriber(config.rebbit.REBBITMQ_EMAIL_QUEUE)
-async def confirm_email(msg: dict):
-    create_task(confirm_email_task(msg))
