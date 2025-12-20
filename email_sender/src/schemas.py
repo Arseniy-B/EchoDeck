@@ -1,13 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
-class LoginOtp(BaseModel):
-    ...
+class SimpleTask(BaseModel):
+    to: EmailStr
+    payload: dict
+    text_name: str
 
-
-class RegisterOtp(BaseModel):
-    ...
-
-
-class Wellcome(BaseModel):
-    ...

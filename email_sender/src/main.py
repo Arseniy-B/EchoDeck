@@ -2,7 +2,8 @@ from faststream import FastStream
 from faststream.rabbit import RabbitBroker, RabbitQueue
 from src.email_sender import email_sender
 from src.config import config
-from pydantic import BaseModel, EmailStr, ValidationError
+from src.schemas import SimpleTask
+from src.exceptions import TemplateMismatch, TemplateNameNotFound
 
 
 broker = RabbitBroker(config.rabbit.get_connection_path)
@@ -10,35 +11,13 @@ app = FastStream(broker)
 
 
 
-class Event(BaseModel):
-    event_type: str
-    to: EmailStr
-    payload: dict
-
-
-class ConfirmPayload(BaseModel):
-    otp: str
-
-
-TypesOfConfirmEmail = ["login_confirm_email", "register_confirm_email"]
-
-
 @broker.subscriber(queue=RabbitQueue(config.rabbit.RABBIT_EMAIL_QUEUE, durable=True))
-async def confirm_email_task(msg: dict):
+async def simple_email_task(event: SimpleTask):
+    if event.text_name not in config.email.TEMPLATES:
+        raise TemplateNameNotFound()
+    t = config.email.TEMPLATES[event.text_name]
     try:
-        event = Event.model_validate(msg)
-    except ValidationError:
-        return
-
-    if event.event_type not in TypesOfConfirmEmail:
-        return
-
-    try:
-        payload = ConfirmPayload.model_validate(event.payload)
-    except ValidationError:
-        return
-
-    t = config.email.TEMPLATES[event.event_type]
-    text = t.format(**payload.model_dump())
+        text = t.format(**event.payload)
+    except KeyError:
+        raise TemplateMismatch()
     await email_sender.send_message(event.to, text)
-

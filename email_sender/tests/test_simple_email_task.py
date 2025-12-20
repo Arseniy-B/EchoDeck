@@ -1,9 +1,11 @@
 import pytest
+from pydantic import ValidationError
 from faststream.rabbit.testing import TestRabbitBroker
 from src.main import broker
 from src.config import config
-import asyncio
 from src.email_sender import email_sender
+from src.main import simple_email_task
+from src.exceptions import TemplateMismatch, TemplateNameNotFound
 
 
 @pytest.fixture(autouse=True)
@@ -23,7 +25,7 @@ def mock_sent_messages(monkeypatch):
 async def test_confirm_email_task_valid_login(mock_sent_messages):
     async with TestRabbitBroker(broker) as test_broker:
         msg = {
-            "event_type": "login_confirm_email",
+            "text_name": "login_confirm_email",
             "to": "user@example.com",
             "payload": {"otp": "123456"}
         }
@@ -36,44 +38,47 @@ async def test_confirm_email_task_valid_login(mock_sent_messages):
         assert len(mock_sent_messages) == 1
         assert mock_sent_messages[0]["to"] == "user@example.com"
         assert "123456" in mock_sent_messages[0]["text"]
+        simple_email_task.mock.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_confirm_email_task_invalid_event_type(mock_sent_messages):
     async with TestRabbitBroker(broker):
+        with pytest.raises(TemplateNameNotFound):
+            msg = {
+                "text_name": "wrong_type",
+                "to": "user@example.com",
+                "payload": {"otp": "123456"}
+            }
 
-        msg = {
-            "event_type": "wrong_type",
-            "to": "user@example.com",
-            "payload": {"otp": "123456"}
-        }
+            await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
 
-        await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
-
-        assert len(mock_sent_messages) == 0
+            assert len(mock_sent_messages) == 0
 
 
 @pytest.mark.asyncio
 async def test_confirm_email_task_invalid_payload(mock_sent_messages):
     async with TestRabbitBroker(broker):
+        with pytest.raises(TemplateMismatch):
+            msg = {
+                "text_name": "register_confirm_email",
+                "to": "user@example.com",
+                "payload": {"wrong_field": "123"}
+            }
 
-        msg = {
-            "event_type": "register_confirm_email",
-            "to": "user@example.com",
-            "payload": {"wrong_field": "123"}
-        }
+            await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
 
-        await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
-
-        assert len(mock_sent_messages) == 0
+            assert len(mock_sent_messages) == 0
 
 @pytest.mark.asyncio
 async def test_confirm_email_task_invalid_email(mock_sent_messages):
     async with TestRabbitBroker(broker):
-        msg = {
-            "event_type": "register_confirm_email",
-            "to": "wrong email",
-            "payload": {"wrong_field": "123"}
-        }
-        await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
-        assert len(mock_sent_messages) == 0
+        with pytest.raises(ValidationError):
+            msg = {
+                "text_name": "register_confirm_email",
+                "to": "wrong email",
+                "payload": {"otp": "123456"}
+            }
+            await broker.publish(msg, queue=config.rabbit.RABBIT_EMAIL_QUEUE)
+            assert len(mock_sent_messages) == 0
 
