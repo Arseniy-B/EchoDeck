@@ -47,18 +47,18 @@ class Otp(BaseSettings):
     expire_minutes: int = 5
 
 
-class RebbitMQ(BaseSettings):
-    REBBITMQ_HOST: str
-    REBBITMQ_PORT: str
-    REBBITMQ_USER: str
-    REBBITMQ_PASS: str
-    REBBITMQ_EMAIL_QUEUE: str
+class RabbitMQ(BaseSettings):
+    RABBIT_HOST: str
+    RABBIT_PORT: str
+    RABBIT_USER: str
+    RABBIT_PASS: str
+    RABBIT_EMAIL_QUEUE: str
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="allow")
 
     @property
     def get_connection_path(self) -> str:
-        return "amqp://user:pass@host:port/"
+        return f"amqp://{self.RABBIT_USER}:{self.RABBIT_PASS}@{self.RABBIT_HOST}:{self.RABBIT_PORT}/"
 
 
 class Config(BaseModel):
@@ -66,6 +66,7 @@ class Config(BaseModel):
     jwt: JWT = JWT()
     redis: RedisSettings = RedisSettings() # pyright: ignore
     otp: Otp = Otp()
+    rabbit: RabbitMQ = RabbitMQ() # pyright: ignore
 
 
 config = Config()
