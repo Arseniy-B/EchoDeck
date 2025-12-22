@@ -62,7 +62,7 @@ async def finish_sign_up(
     user_login: EmailUserLogin,
 ):
     otp_hash = await redis.get(RedisKeys.REGISTER_OTP.format(email=user_login.email))
-    if not ps.verify_password(otp_hash, user_login.otp):
+    if not ps.verify_password(user_login.otp, otp_hash):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="invalid credentials")
 
     user_json = await redis.get(RedisKeys.REGISTER_GHOST_USER.format(email=user_login.email))

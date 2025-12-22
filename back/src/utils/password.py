@@ -13,7 +13,7 @@ class PasswordHelper():
 
     @staticmethod
     def check_password_strength(password: str):
-        if 50 < len(password) < 3:
-            return False
-        return True
+        if 50 > len(password) > 3:
+            return True
+        return False
 
