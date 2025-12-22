@@ -36,9 +36,9 @@ async def test_confirm_email_task_valid_login(mock_sent_messages):
         )
 
         assert len(mock_sent_messages) == 1
+        simple_email_task.mock.assert_called_once()
         assert mock_sent_messages[0]["to"] == "user@example.com"
         assert "123456" in mock_sent_messages[0]["text"]
-        simple_email_task.mock.assert_called_once()
 
 
 @pytest.mark.asyncio

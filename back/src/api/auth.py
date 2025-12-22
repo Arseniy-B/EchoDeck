@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/sign_up/send_data")
+@router.post("/sign_up/send_data", response_model=None)
 async def get_user_create_data(
     redis: RedisDep,
     user_create: UserCreate,
@@ -52,6 +52,7 @@ async def get_user_create_data(
     task = SimpleTask(to=user.email, text_name=TEMPLATES.REGISTER_CONFIRM_EMAIL, payload={"otp": otp})
     await email_publisher(task)
     logger.info("a OTP has been sent to rebbitMQ", extra={"email": user_create.email})
+    return {"success": "OK"}
 
 
 @router.post("/sign_up/confirm_email")

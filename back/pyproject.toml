@@ -22,7 +22,8 @@ redis = "^7.1.0"
 pydantic = {extras = ["email"], version = "^2.12.5"}
 pytest-asyncio = "^1.3.0"
 testcontainers = {extras = ["postgres", "redis"], version = "^4.13.3"}
-faststream = {extras = ["rebbitmq"], version = "^0.6.4"}
+faststream = {extras = ["rabbit"], version = "^0.6.4"}
+fakeredis = "^2.33.0"
 
 
 [build-system]

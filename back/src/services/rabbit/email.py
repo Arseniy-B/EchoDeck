@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 router = RabbitRouter(config.rabbit.get_connection_path)
 
 
-@router.publisher(config.rabbit.RABBIT_EMAIL_QUEUE)
 async def email_publisher(task: SimpleTask):
+    await router.broker.publish(task.model_dump(), queue=config.rabbit.RABBIT_EMAIL_QUEUE)
     logger.info(
         "a message was sent to rabbit",
         extra={"email": task.to, "text_name": task.text_name},
