@@ -41,6 +41,7 @@ async def get_user_create_data(
     user = GhostUser(email=user_create.email, password_hash=password_hash)
 
     otp = generate_otp_code()
+    print(otp)
     await redis.set(RedisKeys.REGISTER_OTP.format(email=user.email), ps.hash_password(otp))
     logger.info("OTP has been saved in redis", extra={"email": user_create.email})
 
@@ -60,6 +61,7 @@ async def finish_sign_up(
     redis: RedisDep,
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
+    auth_repo: AuthDep
 ):
     otp_hash_redis_key = RedisKeys.REGISTER_OTP.format(email=user_login.email)
     otp_hash = await redis.get(otp_hash_redis_key)
@@ -80,6 +82,8 @@ async def finish_sign_up(
     await redis.delete(otp_hash_redis_key)
     await redis.delete(ghost_user_redis_key)
     logger.info("create user", extra={"email": user.email})
+    auth_repo.login(user)
+
 
 
 @router.post("/sign_in/send_otp")

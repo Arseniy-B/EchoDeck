@@ -15,6 +15,7 @@ class UserCreate(BaseModel):
 
 class GhostUser(BaseModel):
     email: EmailStr
+    disabled: bool = False
     password_hash: str
 
 class User(BaseModel):
