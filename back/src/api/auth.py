@@ -61,11 +61,13 @@ async def finish_sign_up(
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
 ):
-    otp_hash = await redis.get(RedisKeys.REGISTER_OTP.format(email=user_login.email))
-    if not ps.verify_password(user_login.otp, otp_hash):
+    otp_hash_redis_key = RedisKeys.REGISTER_OTP.format(email=user_login.email)
+    otp_hash = await redis.get(otp_hash_redis_key)
+    if not otp_hash or not ps.verify_password(user_login.otp, otp_hash):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="invalid credentials")
 
-    user_json = await redis.get(RedisKeys.REGISTER_GHOST_USER.format(email=user_login.email))
+    ghost_user_redis_key = RedisKeys.REGISTER_GHOST_USER.format(email=user_login.email)
+    user_json = await redis.get(ghost_user_redis_key)
     if not user_json:
         logger.info(
             "Signup confirm failed: ghost user not found",
@@ -74,6 +76,9 @@ async def finish_sign_up(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="sign up not started")
     user = GhostUser.model_validate(json.loads(user_json))
     await user_repo.add_new_user(user)
+
+    await redis.delete(otp_hash_redis_key)
+    await redis.delete(ghost_user_redis_key)
     logger.info("create user", extra={"email": user.email})
 
 

@@ -6,3 +6,5 @@ class RedisKeys(StrEnum):
 
     REGISTER_OTP = "otp:signup:{email}"
     REGISTER_GHOST_USER = "ghost_user:signup:{email}"
+
+    REQUEST_LIMITER = "rate_limit:{key}"

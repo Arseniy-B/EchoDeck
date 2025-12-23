@@ -1,26 +1,30 @@
 from functools import wraps
-from src.services.redis.redis import redis_helper, Redis
-from datetime import datetime, timedelta
 from fastapi.exceptions import HTTPException
-from fastapi import status
+from fastapi import status, Request
+from src.api.utils.depends import RedisDep
+from src.services.redis.keys import RedisKeys
 
 
-# DATE_FORMAT = "%Y-%m-%d %H:%M"
-# def REDIS_KEY(func_name, field): return f"{func_name}:{field}"
-#
-# def query_limiter(seconds: int, field: str):
-#     def decorator(func):
-#         @wraps(func)
-#         async def wrapper(*args, **kwargs):
-#             redis = await redis_helper.get_redis()
-#             last_query = await redis.get(REDIS_KEY(func.__name__, ))
-#             if last_query:
-#                 datetime.strptime(last_query, DATE_FORMAT)
-#                 if last_query + timedelta(0, seconds) > datetime.now():
-#                     return HTTPException(status.HTTP_429_TOO_MANY_REQUESTS)
-#             ans = await func(*args, **kwargs)
-#             date = datetime.strftime(datetime.now(), DATE_FORMAT)
-#             redis.set(REDIS_KEY(func.__name__, ), date)
-#             return ans
-#         return wrapper
-#     return decorator
+def query_limiter(field: str, rate_limit_per_minute: int = 5):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, request: Request, redis: RedisDep, **kwargs):
+            body = await request.json()
+            limit_key = body.get(field)
+            
+            if not limit_key:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{field} not found in request")
+
+            redis_key = RedisKeys.REQUEST_LIMITER.format(key=limit_key)
+            count = await redis.incr(redis_key)
+
+            if count == 1:
+                await redis.expire(redis_key, 60)
+            if count > rate_limit_per_minute:
+                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Rate limit exceeded")
+
+            ans = await func(*args, **kwargs)
+
+            return ans
+        return wrapper
+    return decorator
