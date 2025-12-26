@@ -1,7 +1,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from fastapi.exceptions import HTTPException
 from pydantic import EmailStr
 
@@ -22,6 +22,7 @@ from src.utils.otp import generate_otp_code
 from src.utils.password import PasswordHelper as ps
 from src.services.redis.keys import RedisKeys
 from src.services.rabbit.email import email_publisher, SimpleTask, TEMPLATES
+from src.api.utils.query_limiter import email_query_limiter
 
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,7 @@ router = APIRouter(prefix="/auth")
 
 @router.post("/sign_up/send_data", response_model=None)
 async def get_user_create_data(
-    redis: RedisDep,
-    user_create: UserCreate,
+    redis: RedisDep, user_create: UserCreate, limit=Depends(email_query_limiter)
 ):
     if not ps.check_password_strength(user_create.password):
         raise HTTPException(
@@ -41,19 +41,24 @@ async def get_user_create_data(
     user = GhostUser(email=user_create.email, password_hash=password_hash)
 
     otp = generate_otp_code()
-    print(otp)
-    await redis.set(RedisKeys.REGISTER_OTP.format(email=user.email), ps.hash_password(otp))
+    await redis.set(
+        RedisKeys.REGISTER_OTP.format(email=user.email), ps.hash_password(otp)
+    )
     logger.info("OTP has been saved in redis", extra={"email": user_create.email})
 
-    await redis.set(RedisKeys.REGISTER_GHOST_USER.format(email=user.email), json.dumps(user.model_dump()))
+    await redis.set(
+        RedisKeys.REGISTER_GHOST_USER.format(email=user.email),
+        json.dumps(user.model_dump()),
+    )
     logger.info(
         "ghost_user's data has been saved in redis", extra={"email": user_create.email}
     )
 
-    task = SimpleTask(to=user.email, text_name=TEMPLATES.REGISTER_CONFIRM_EMAIL, payload={"otp": otp})
+    task = SimpleTask(
+        to=user.email, text_name=TEMPLATES.REGISTER_CONFIRM_EMAIL, payload={"otp": otp}
+    )
     await email_publisher(task)
     logger.info("a OTP has been sent to rebbitMQ", extra={"email": user_create.email})
-    return {"success": "OK"}
 
 
 @router.post("/sign_up/confirm_email")
@@ -61,7 +66,7 @@ async def finish_sign_up(
     redis: RedisDep,
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
-    auth_repo: AuthDep
+    auth_repo: AuthDep,
 ):
     otp_hash_redis_key = RedisKeys.REGISTER_OTP.format(email=user_login.email)
     otp_hash = await redis.get(otp_hash_redis_key)
@@ -85,10 +90,12 @@ async def finish_sign_up(
     auth_repo.login(user)
 
 
-
 @router.post("/sign_in/send_otp")
 async def send_otp_to_email(
-    email: EmailStr, user_repo: UserRepoDep, redis: RedisDep
+    email: EmailStr,
+    user_repo: UserRepoDep,
+    redis: RedisDep,
+    limit=Depends(email_query_limiter),
 ):
     user = await user_repo.get_user_by_email(email)
     if not user:
@@ -99,7 +106,9 @@ async def send_otp_to_email(
 
     otp = generate_otp_code()
     await redis.set(RedisKeys.LOGIN_OTP.format(email=email), ps.hash_password(otp))
-    task = SimpleTask(to=email, text_name=TEMPLATES.LOGIN_CONFIRM_EMAIL, payload={"otp": otp})
+    task = SimpleTask(
+        to=email, text_name=TEMPLATES.LOGIN_CONFIRM_EMAIL, payload={"otp": otp}
+    )
     await email_publisher(task)
 
 
@@ -108,23 +117,19 @@ async def login_by_email(
     auth_repo: AuthDep,
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
-    redis: RedisDep
+    redis: RedisDep,
 ):
     otp_hash = await redis.get(RedisKeys.LOGIN_OTP.format(email=user_login.email))
     if not ps.verify_password(otp_hash, user_login.otp):
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, detail="incorrect credentials"
-        )
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="incorrect credentials")
     user = await user_repo.get_user_by_email(user_login.email)
     if not user:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, detail="incorrect credentials"
-        )
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="incorrect credentials")
     auth_repo.login(user)
 
 
 @router.post("/sign_in/password")
-async def login_password(
+async def login_by_password(
     auth_repo: AuthDep, user_repo: UserRepoDep, user_login: PasswordUserLogin
 ):
     user = await user_repo.get_user_by_email(user_login.email)
@@ -137,16 +142,15 @@ async def login_password(
 
 @router.get("/token")
 async def refresh_token(auth_repo: AuthDep, user_repo: UserRepoDep):
-    refresh = auth_repo.get_refresh()
-    if not refresh or auth_repo.verify_refresh(refresh):
+    token_user_id = auth_repo.is_refresh()
+    if not token_user_id:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid or expired refresh token"
         )
-    user_id = auth_repo.get_token_user_id(refresh)
-    user = await user_repo.get_user_by_id(user_id)
+    user = await user_repo.get_user_by_id(token_user_id)
     if not user:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid or expired refresh token"
         )
-    auth_repo.refresh()
+    auth_repo.refresh(token_user_id)
     logger.info("refresh token", extra={"email": user.email})

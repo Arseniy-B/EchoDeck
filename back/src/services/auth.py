@@ -1,7 +1,10 @@
-from fastapi import Request, Response
+from fastapi import Request, Response, Cookie
 from src.utils.jwt import JWT
+from src.config import config
+
 
 AUTH_HEADER_KEY = "Authorization"
+REFRESH_COOKIE_KEY = "refresh_token"
 
 
 class Auth:
@@ -9,27 +12,39 @@ class Auth:
         self.web_token = JWT
         self.request = request
         self.response = response
-        
-    def is_authorized(self) -> bool:
-        if auth_token := self.request.headers.get(AUTH_HEADER_KEY):
-            if auth_token:
-                return True
-        return False
 
-        return self._is_authorized
+    def get_refresh(self) -> str | None: 
+        if REFRESH_COOKIE_KEY in self.request.cookies:
+            return self.request.cookies[REFRESH_COOKIE_KEY]
 
-    def login(self, user):
-        # self.response.headers[AUTH_HEADER_KEY]
-        ...
+    def get_access(self) -> str | None:
+        return self.request.headers[AUTH_HEADER_KEY]
 
-    def get_refresh(self):
-        ...
+    def is_refresh(self) -> int | None:
+        if auth_token := self.get_refresh():
+            if user_id := JWT.decode(auth_token):
+                return user_id
 
-    def get_token_user_id(self, token: str) -> int:
-        ...
+    def is_authorized(self) -> int | None:
+        if auth_token := self.get_access():
+            if user_id := JWT.decode(auth_token):
+                return user_id
 
-    def verify_refresh(self, refresh: str) -> bool:
-        ...
-    
-    def refresh(self):
-        ...
+    def login(self, user_id):
+        access = JWT.encode(user_id)
+        self.response.headers[AUTH_HEADER_KEY] = access
+
+        refresh = JWT.encode(
+            user_id, expire_minutes=config.jwt.refresh_token_expire_minutes
+        )
+        self.response.set_cookie(
+            key=REFRESH_COOKIE_KEY,
+            value=refresh,
+            httponly=True,
+            max_age=config.jwt.refresh_token_expire_minutes * 60,
+        )
+
+    def refresh(self, user_id): 
+        new_access = JWT.encode(user_id)
+        self.response.headers[AUTH_HEADER_KEY] = new_access
+
