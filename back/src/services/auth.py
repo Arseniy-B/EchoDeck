@@ -30,7 +30,7 @@ class Auth:
             if user_id := JWT.decode(auth_token):
                 return user_id
 
-    def login(self, user_id):
+    def login(self, user_id: int):
         access = JWT.encode(user_id)
         self.response.headers[AUTH_HEADER_KEY] = access
 

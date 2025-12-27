@@ -24,6 +24,9 @@ class JWT:
         token: str | bytes,
         public_key: str = config.jwt.public_key_path.read_text(),
         algorithm: str = config.jwt.algorithm,
-    ) -> USER_ID:
-        decoded = jwt.decode(token, public_key, algorithms=[algorithm])
+    ) -> USER_ID | None:
+        try:
+            decoded = jwt.decode(token, public_key, algorithms=[algorithm])
+        except jwt.DecodeError:
+            return None
         return decoded["exp"]

@@ -82,12 +82,11 @@ async def finish_sign_up(
         )
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="sign up not started")
     user = GhostUser.model_validate(json.loads(user_json))
-    await user_repo.add_new_user(user)
+    await user_repo.create(user)
 
     await redis.delete(otp_hash_redis_key)
     await redis.delete(ghost_user_redis_key)
     logger.info("create user", extra={"email": user.email})
-    auth_repo.login(user)
 
 
 @router.post("/sign_in/send_otp")
@@ -125,7 +124,7 @@ async def login_by_email(
     user = await user_repo.get_user_by_email(user_login.email)
     if not user:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="incorrect credentials")
-    auth_repo.login(user)
+    auth_repo.login(user.id)
 
 
 @router.post("/sign_in/password")
@@ -137,7 +136,7 @@ async def login_by_password(
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="Incorrect username or password"
         )
-    auth_repo.login(user)
+    auth_repo.login(user.id)
 
 
 @router.get("/token")
@@ -147,7 +146,7 @@ async def refresh_token(auth_repo: AuthDep, user_repo: UserRepoDep):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid or expired refresh token"
         )
-    user = await user_repo.get_user_by_id(token_user_id)
+    user = await user_repo.get_by_id(token_user_id)
     if not user:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid or expired refresh token"
