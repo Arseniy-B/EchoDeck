@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Auth from "./pages/auth";
 import Home from "./pages/home";
+import DeckMenu from "./pages/decks";
 import ThemeProvider from "@/components/theme-provider";
 
 
@@ -12,6 +13,7 @@ function App() {
           <Routes>
             <Route path="/*" element={<Home />} />
             <Route path="/auth/*" element={<Auth/>} />
+            <Route path="/deck/*" element={<DeckMenu />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

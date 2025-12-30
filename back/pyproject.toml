@@ -25,6 +25,7 @@ testcontainers = {extras = ["postgres", "redis"], version = "^4.13.3"}
 faststream = {extras = ["rabbit"], version = "^0.6.4"}
 fakeredis = "^2.33.0"
 pytest-xdist = "^3.8.0"
+cryptography = "^46.0.3"
 
 
 [build-system]

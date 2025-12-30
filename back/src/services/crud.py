@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from src.models.db import AsyncSession
-from src.models.models import Base,
+from src.models.models import Base
 
 T_Model = TypeVar("T_Model", bound=Base)
 

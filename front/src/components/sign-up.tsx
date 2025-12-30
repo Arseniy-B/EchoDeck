@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import React from "react"
 
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -23,10 +24,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { HelpCircle, InfoIcon } from "lucide-react"
-import type { UserCreate } from "@/services/schemas/auth"
-import { sendUserData } from "@/services/api/auth"
+import type { UserCreate, PasswordUserLogin } from "@/services/schemas/auth"
+import { sendUserData, confirmRegisterEmail, loginByPassword } from "@/services/api/auth"
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
+import { useNavigate } from 'react-router-dom';
 
 
 const LoginSchema = z.object({
@@ -36,6 +52,12 @@ const LoginSchema = z.object({
 
 
 export default function SignUp(){
+  const navigate = useNavigate();
+  const [open, setOpen] = React.useState(false);
+  const [userCreate, setUserCreate] = React.useState<UserCreate>({email: "", password: ""});
+  const [otpValue, setOtpValue] = React.useState('');
+  const [isOtpError, setOtpError] = React.useState<boolean>(false);
+
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
@@ -44,13 +66,36 @@ export default function SignUp(){
     }
   })
 
+  React.useEffect(() => {
+    if (otpValue.length == 6){
+      const confirmEmail = {email: userCreate.email, otp: otpValue}
+      confirmRegisterEmail({userLogin: confirmEmail})
+      .then(() => {
+        const userLogin = {email: userCreate.email, password: userCreate.password}
+        loginByPassword({userLogin: userLogin}) 
+        .then(() => {
+          navigate("/")
+        })
+      })
+      .catch(err => {
+        setOtpError(true);
+        if (err.response){
+          console.log(err.response.status);
+        }
+      })
+    }
+  }, [otpValue])
+
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     const user: UserCreate = {email: values.email, password: values.password};
+    setUserCreate(user);
     toast.promise(() => sendUserData({user}), {
       loading: "sending an email notification",
       success: "OTP has been sent to your email.",
       error: "Error, OTP was not sent"
     })
+    setUserCreate(user);
+    setOpen(true);
   }
 
   return (
@@ -123,6 +168,33 @@ export default function SignUp(){
           />
           <Separator/>
           <Button type="submit">Submit</Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="sm:max-w-md">
+              <div className="flex flex-col items-center space-y-6 py-4">
+                <DialogHeader>
+                  <DialogTitle>Enter the confirmation code</DialogTitle>
+                </DialogHeader>
+                <Separator/>
+                <InputOTP 
+                  maxLength={6}
+                  value={otpValue}
+                  onChange={(value) => setOtpValue(value)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                    <InputOTPSlot index={1} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                    <InputOTPSlot index={2} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                    <InputOTPSlot index={4} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                    <InputOTPSlot index={5} className={isOtpError ? "border-red-500 ring-red-500" : ""}/>
+                  </InputOTPGroup>
+                </InputOTP>         
+              </div>
+            </DialogContent>
+          </Dialog>
         </form>
       </Form>
     </div>

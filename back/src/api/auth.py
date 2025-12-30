@@ -42,13 +42,16 @@ async def get_user_create_data(
 
     otp = generate_otp_code()
     await redis.set(
-        RedisKeys.REGISTER_OTP.format(email=user.email), ps.hash_password(otp)
+        RedisKeys.REGISTER_OTP.format(email=user.email),
+        ps.hash_password(otp),
+        ex=config.otp.expire_minutes * 60,
     )
     logger.info("OTP has been saved in redis", extra={"email": user_create.email})
 
     await redis.set(
         RedisKeys.REGISTER_GHOST_USER.format(email=user.email),
         json.dumps(user.model_dump()),
+        ex=config.otp.expire_minutes * 60,
     )
     logger.info(
         "ghost_user's data has been saved in redis", extra={"email": user_create.email}
@@ -70,7 +73,7 @@ async def finish_sign_up(
 ):
     otp_hash_redis_key = RedisKeys.REGISTER_OTP.format(email=user_login.email)
     otp_hash = await redis.get(otp_hash_redis_key)
-    if not otp_hash or not ps.verify_password(user_login.otp, otp_hash):
+    if not otp_hash or not ps.verify_password(user_login.otp, str(otp_hash)):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="invalid credentials")
 
     ghost_user_redis_key = RedisKeys.REGISTER_GHOST_USER.format(email=user_login.email)
@@ -94,7 +97,7 @@ async def send_otp_to_email(
     email: EmailStr,
     user_repo: UserRepoDep,
     redis: RedisDep,
-    limit=Depends(email_query_limiter),
+    _=Depends(email_query_limiter),
 ):
     user = await user_repo.get_user_by_email(email)
     if not user:
@@ -104,9 +107,15 @@ async def send_otp_to_email(
         raise HTTPException(status.HTTP_200_OK)
 
     otp = generate_otp_code()
-    await redis.set(RedisKeys.LOGIN_OTP.format(email=email), ps.hash_password(otp))
+    await redis.set(
+        RedisKeys.LOGIN_OTP.format(email=email),
+        ps.hash_password(otp),
+        ex=config.otp.expire_minutes * 60,
+    )
     task = SimpleTask(
-        to=email, text_name=TEMPLATES.LOGIN_CONFIRM_EMAIL, payload={"otp": otp}
+        to=email,
+        text_name=TEMPLATES.LOGIN_CONFIRM_EMAIL,
+        payload={"otp": otp},
     )
     await email_publisher(task)
 
@@ -119,7 +128,7 @@ async def login_by_email(
     redis: RedisDep,
 ):
     otp_hash = await redis.get(RedisKeys.LOGIN_OTP.format(email=user_login.email))
-    if not ps.verify_password(otp_hash, user_login.otp):
+    if not ps.verify_password(user_login.otp, otp_hash):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="incorrect credentials")
     user = await user_repo.get_user_by_email(user_login.email)
     if not user:
