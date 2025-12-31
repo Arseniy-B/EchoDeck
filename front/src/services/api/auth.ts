@@ -25,6 +25,7 @@ export async function loginByPassword({userLogin}: {userLogin: PasswordUserLogin
   })
   .then((res) => {
     localStorage.setItem(ACCESS_STORAGE_KEY, res.headers[ACCESS_HEADER_KEY]);
+    console.log(res.headers);
   })
 }
 

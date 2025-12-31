@@ -5,6 +5,7 @@ from src.config import config
 
 AUTH_HEADER_KEY = "authorization"
 REFRESH_COOKIE_KEY = "refresh_token"
+ACCESS_HEADERS_KEY = "Access-Control-Expose-Headers"
 
 
 class Auth:
@@ -33,6 +34,7 @@ class Auth:
     def login(self, user_id: int):
         access = JWT.encode(user_id)
         self.response.headers[AUTH_HEADER_KEY] = access
+        self.response.headers[ACCESS_HEADERS_KEY] = AUTH_HEADER_KEY
 
         refresh = JWT.encode(
             user_id, expire_minutes=config.jwt.refresh_token_expire_minutes
@@ -47,4 +49,5 @@ class Auth:
     def refresh(self, user_id): 
         new_access = JWT.encode(user_id)
         self.response.headers[AUTH_HEADER_KEY] = new_access
+        self.response.headers[ACCESS_HEADERS_KEY] = AUTH_HEADER_KEY
 

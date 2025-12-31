@@ -16,16 +16,15 @@ import {
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-  InputGroupText,
-  InputGroupTextarea,
 } from "@/components/ui/input-group"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Input } from "@/components/ui/input"
 import { HelpCircle, InfoIcon } from "lucide-react"
+import { loginByPassword } from "@/services/api/auth"
+import { useNavigate } from 'react-router-dom';
 
 
 const LoginSchema = z.object({
@@ -35,6 +34,8 @@ const LoginSchema = z.object({
 
 
 export default function SignIn(){
+  const navigate = useNavigate();
+
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
@@ -45,6 +46,10 @@ export default function SignIn(){
 
   function onSubmit(values: z.infer<typeof LoginSchema>) {
     console.log(values);
+    const userLogin = {email: values.email, password: values.password}
+    loginByPassword({userLogin: userLogin}).then(() => {
+      navigate("/");
+    })
   }
 
   return (
