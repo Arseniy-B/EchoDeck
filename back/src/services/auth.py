@@ -3,7 +3,7 @@ from src.utils.jwt import JWT
 from src.config import config
 
 
-AUTH_HEADER_KEY = "Authorization"
+AUTH_HEADER_KEY = "authorization"
 REFRESH_COOKIE_KEY = "refresh_token"
 
 

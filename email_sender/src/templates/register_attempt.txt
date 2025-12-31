@@ -1,0 +1,1 @@
+Someone tried to register using your email address: {email}. It's not possible to register a new account using your existing email address.

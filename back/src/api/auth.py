@@ -29,14 +29,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/sign_up/send_data", response_model=None)
+@router.post(
+    "/sign_up/send_data",
+    response_model=None,
+    dependencies=[Depends(email_query_limiter)],
+)
 async def get_user_create_data(
-    redis: RedisDep, user_create: UserCreate, limit=Depends(email_query_limiter)
+    redis: RedisDep,
+    user_create: UserCreate,
+    user_repo: UserRepoDep,
 ):
     if not ps.check_password_strength(user_create.password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="password too weak"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    if not user_repo.get_user_by_email(user_create.email):
+        logger.info(
+            "attempt to register an existing account",
+            extra={"email": user_create.email},
         )
+        task = SimpleTask(
+            to=user_create.email,
+            text_name=TEMPLATES.REGISTER_ATTEMPT,
+            payload={"email": user_create.email},
+        )
+        await email_publisher(task)
+        return
     password_hash = ps.hash_password(user_create.password)
     user = GhostUser(email=user_create.email, password_hash=password_hash)
 
@@ -69,7 +86,6 @@ async def finish_sign_up(
     redis: RedisDep,
     user_repo: UserRepoDep,
     user_login: EmailUserLogin,
-    auth_repo: AuthDep,
 ):
     otp_hash_redis_key = RedisKeys.REGISTER_OTP.format(email=user_login.email)
     otp_hash = await redis.get(otp_hash_redis_key)
@@ -92,12 +108,11 @@ async def finish_sign_up(
     logger.info("create user", extra={"email": user.email})
 
 
-@router.post("/sign_in/send_otp")
+@router.post("/sign_in/send_otp", dependencies=[Depends(email_query_limiter)])
 async def send_otp_to_email(
     email: EmailStr,
     user_repo: UserRepoDep,
     redis: RedisDep,
-    _=Depends(email_query_limiter),
 ):
     user = await user_repo.get_user_by_email(email)
     if not user:

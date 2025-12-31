@@ -24,17 +24,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { HelpCircle, InfoIcon } from "lucide-react"
-import type { UserCreate, PasswordUserLogin } from "@/services/schemas/auth"
+import type { UserCreate } from "@/services/schemas/auth"
 import { sendUserData, confirmRegisterEmail, loginByPassword } from "@/services/api/auth"
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   InputOTP,
@@ -89,7 +87,9 @@ export default function SignUp(){
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     const user: UserCreate = {email: values.email, password: values.password};
     setUserCreate(user);
-    toast.promise(() => sendUserData({user}), {
+
+    const promise = sendUserData({user});
+    toast.promise(() => promise, {
       loading: "sending an email notification",
       success: "OTP has been sent to your email.",
       error: "Error, OTP was not sent"

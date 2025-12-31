@@ -9,7 +9,7 @@ class TEMPLATES(StrEnum):
     LOGIN_CONFIRM_EMAIL = "login_confirm_email"
     REGISTER_CONFIRM_EMAIL = "register_confirm_email"
     WELLCOME_EMAIL = "wellcome"
-
+    REGISTER_ATTEMPT = "register_attempt"
 
 class SimpleTask(BaseModel):
     to: EmailStr
