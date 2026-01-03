@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from src.api.auth import router as AuthRouter
+from src.api.deck import router as DeckRouter
 from fastapi.middleware.cors import CORSMiddleware
 from src.services.rabbit.email import router as EmailRabbitRouter
 
@@ -22,4 +23,6 @@ app.add_middleware(
 )
 
 app.include_router(router=AuthRouter)
+app.include_router(router=DeckRouter)
+
 app.include_router(router=EmailRabbitRouter)

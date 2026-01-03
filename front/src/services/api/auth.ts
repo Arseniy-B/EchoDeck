@@ -31,15 +31,15 @@ export async function loginByPassword({userLogin}: {userLogin: PasswordUserLogin
 
 
 async function refreshToken(){
-  return axios.get("/auth/token", {withCredentials: true});
+  return axios.get(backendAddress + "/auth/token", {withCredentials: true});
 }
 
-async function authorizedRequest({method, url, data}: {method: string, url: string, data?: any | null}){
+export async function authorizedRequest({method, url, data}: {method: string, url: string, data?: any | null}){
   const requestData = {method: method, url: url, ...(data !== null && data !== undefined ? { data } : {})};
   const accessToken = localStorage.getItem(ACCESS_STORAGE_KEY);
   return axios({
     headers: {
-      ACCESS_HEADER_KEY: accessToken
+      [ACCESS_HEADER_KEY]: accessToken
     },
     ...requestData
   }).catch(err => {
@@ -49,7 +49,7 @@ async function authorizedRequest({method, url, data}: {method: string, url: stri
         localStorage.setItem(ACCESS_STORAGE_KEY, newAccess);
         
         return axios({
-          headers: {ACCESS_HEADER_KEY: newAccess},
+          headers: {[ACCESS_HEADER_KEY]: newAccess},
           ...requestData
         })
       })
@@ -58,6 +58,4 @@ async function authorizedRequest({method, url, data}: {method: string, url: stri
   })
 }
 
-export async function getDecks(){
-  return authorizedRequest({method: "get", url: backendAddress + "/deck/"})
-}
+

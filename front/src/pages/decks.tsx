@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import DecksList from "@/components/decks-list";
 import Deck from "@/components/deck";
-
+import { Separator } from "@/components/ui/separator";
 
 function NotFound(){
   return (
@@ -12,13 +12,18 @@ function NotFound(){
 
 function DeckMenu() {
   return (
-    <div className="w-[100vw] h-[100vh]">
-      <Routes>
-        <Route path="/" element={<DecksList />} />
-        <Route path="/:deckId" element={<Deck/>} />
-        <Route path="*" element={<NotFound/>} />
-      </Routes>
-    </div>
+    <>
+      <Separator className="fixed ml-[10vw]" orientation="vertical"/>
+      <Separator className="fixed right-0 mr-[10vw]" orientation="vertical"/>
+      <div className="pt-10">
+        <Separator/>
+        <Routes>
+          <Route path="/" element={<DecksList />} />
+          <Route path="/:deckId" element={<Deck/>} />
+          <Route path="*" element={<NotFound/>} />
+        </Routes>
+      </div>
+    </>
   )
 }
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from src.schemas.deck import DeckCreate, DeckCreateData
+from src.schemas.deck import DeckCreate, DeckCreateData, DeckOut
 from src.api.utils.depends import AuthDep, DeckRepoDep
 
 
@@ -23,7 +23,8 @@ async def get_decks(auth: AuthDep, Deck: DeckRepoDep):
     if not user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-    return Deck.get_all(user_id)
+    decks = await Deck.get_all(user_id)
+    return list(map(DeckOut.model_validate, decks))
 
 
 @router.post("/delete")

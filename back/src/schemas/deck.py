@@ -25,3 +25,8 @@ class DeckCreate(BaseModel):
     title: str
     tracking_status: TrackingStatus
 
+
+class DeckOut(BaseModel):
+    id: int
+    title: str
+    tracking_status: TrackingStatus

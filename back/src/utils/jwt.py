@@ -15,18 +15,18 @@ class JWT:
     ):
         now = datetime.now(timezone.utc)
         expire = now + timedelta(minutes=expire_minutes)
-        to_encode = {"sub": user_id, "exp": expire, "iat": now}
+        to_encode = {"sub": str(user_id), "exp": expire, "iat": now}
         encoded = jwt.encode(to_encode, private_key, algorithm=algorithm)
         return encoded
 
     @staticmethod
     def decode(
-        token: str | bytes,
+        token: str,
         public_key: str = config.jwt.public_key_path.read_text(),
         algorithm: str = config.jwt.algorithm,
     ) -> USER_ID | None:
         try:
             decoded = jwt.decode(token, public_key, algorithms=[algorithm])
-        except jwt.DecodeError:
+        except (jwt.DecodeError, jwt.ExpiredSignatureError):
             return None
-        return decoded["exp"]
+        return int(decoded["sub"])

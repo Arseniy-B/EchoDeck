@@ -19,7 +19,7 @@ class Auth:
             return self.request.cookies[REFRESH_COOKIE_KEY]
 
     def get_access(self) -> str | None:
-        return self.request.headers[AUTH_HEADER_KEY]
+        return self.request.headers.get(AUTH_HEADER_KEY)
 
     def is_refresh(self) -> int | None:
         if auth_token := self.get_refresh():

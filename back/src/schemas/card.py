@@ -39,3 +39,13 @@ class CardCreate(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
+class CardOut(BaseModel):
+    deck_id: int
+    question: str
+    answer: str
+    description: str
+
+    created_at: datetime
+    updated_at: datetime
+
