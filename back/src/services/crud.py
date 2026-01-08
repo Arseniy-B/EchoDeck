@@ -5,6 +5,12 @@ from sqlalchemy import select
 
 from src.models.db import AsyncSession
 from src.models.models import Base
+from src.schemas.deck import Deck
+from src.models.models import Deck as DeckModel
+from src.models.db import AsyncSession
+from src.models.models import User
+from src.schemas.user import User as UserSchema
+
 
 T_Model = TypeVar("T_Model", bound=Base)
 
@@ -20,7 +26,7 @@ class CRUD(Generic[T_Model, T_Schema, T_GhostSchema, T_SchemaCreate, T_SchemaUpd
         session: AsyncSession,
         model: type[T_Model],
         schema: T_Schema,
-        ghost_schema: T_GhostSchema, 
+        ghost_schema: T_GhostSchema,
         schema_create: T_SchemaCreate,
     ):
         self.session = session
@@ -57,3 +63,19 @@ class CRUD(Generic[T_Model, T_Schema, T_GhostSchema, T_SchemaCreate, T_SchemaUpd
         obj = await self.session.get(self.model, obj_id)
         await self.session.delete(obj)
         await self.session.commit()
+
+
+class DeckRepo(CRUD):
+    async def get_all(self, user_id: int) -> list[Deck]:
+        stmt = select(DeckModel).where(DeckModel.user_id == user_id)
+        ans = await self.session.execute(stmt)
+        deck_objs = ans.scalars().all()
+        return [Deck.model_validate(i, from_attributes=True) for i in deck_objs]
+
+
+class UserRepo(CRUD):
+    async def get_user_by_email(self, email: str) -> UserSchema:
+        stmt = select(User).where(User.email == email)
+        ans = await self.session.execute(stmt)
+        user_model: User = ans.scalar_one()
+        return UserSchema.model_validate(user_model.__dict__)

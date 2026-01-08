@@ -1,7 +1,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.exceptions import HTTPException
 from pydantic import EmailStr
 
@@ -10,20 +10,18 @@ from src.api.utils.depends import (
     RedisDep,
     UserRepoDep,
 )
+from src.api.utils.query_limiter import email_query_limiter
 from src.config import config
 from src.schemas.user import (
     EmailUserLogin,
     GhostUser,
     PasswordUserLogin,
-    User,
     UserCreate,
 )
+from src.services.rabbit.email import TEMPLATES, SimpleTask, email_publisher
+from src.services.redis.keys import RedisKeys
 from src.utils.otp import generate_otp_code
 from src.utils.password import PasswordHelper as ps
-from src.services.redis.keys import RedisKeys
-from src.services.rabbit.email import email_publisher, SimpleTask, TEMPLATES
-from src.api.utils.query_limiter import email_query_limiter
-
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth")

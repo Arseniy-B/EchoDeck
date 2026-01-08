@@ -1,4 +1,3 @@
-from functools import wraps
 from fastapi.exceptions import HTTPException
 from fastapi import status, Request
 from src.api.utils.depends import RedisDep

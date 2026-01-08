@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from src.models.models import TrackingStatus
+
 
 
 class Deck(BaseModel):

@@ -24,6 +24,9 @@ function DecksList(){
           <CardHeader><CardTitle>{deck.title}</CardTitle></CardHeader>
         </Card>
       )}
+      <Card onClick={()=>{}}className="dark:hover:bg-input/50 hover:text-accent-foreground item-center m-auto">
+        <Plus/>
+      </Card>
     </div>
   )
 }
